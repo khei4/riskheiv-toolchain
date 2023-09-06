@@ -1,107 +1,165 @@
 #ifndef INSTRUCTIONS_H
 #define INSTRUCTIONS_H
+#include "InstructionTypes.h"
+#include "Registers.h"
+#include <cassert>
+#include <ostream>
 
-#include <bitset>
-#include <map>
+namespace {
 
-// classes to assemble
-class ISBType {
-private:
-  // FIXME: mnemonic isn't necessary?
-  const std::string mnemonic;
-  const std::bitset<3> funct3;
-  const std::bitset<7> opcode;
+static const std::pair<int, std::string>
+parseOffsetReg(const std::string &input) {
+  std::string numStr, identifier;
 
-public:
-  ISBType(const std::string &mnemonic, const unsigned funct3,
-          const unsigned opcode)
-      : mnemonic(mnemonic), funct3(funct3), opcode(opcode) {}
-  const std::string &getMnemonic() const { return mnemonic; }
-  const std::bitset<3> &getFunct3() const { return funct3; }
-  const std::bitset<7> &getOpcode() const { return opcode; }
-};
+  size_t i = 0;
+  while (i < input.size() && (std::isdigit(input[i]) || input[i] == '-')) {
+    numStr.push_back(input[i]);
+    i++;
+  }
 
-const std::map<std::string, ISBType> ITypeKinds = {
-    {"addi", {"addi", 0b000, 0b0010011}},
-    {"slti", {"slti", 0b010, 0b0010011}},
-    {"sltiu", {"sltiu", 0b011, 0b0010011}},
-    {"xori", {"xori", 0b100, 0b0010011}},
-    {"ori", {"ori", 0b110, 0b0010011}},
-    {"andi", {"andi", 0b111, 0b0010011}},
-    {"jalr", {"jalr", 0b000, 0b1100111}},
-    {"lb", {"lb", 0b000, 0b0000011}},
-    {"lh", {"lh", 0b001, 0b0000011}},
-    {"lw", {"lw", 0b010, 0b0000011}},
-    {"lbu", {"lbu", 0b100, 0b0000011}},
-    {"lhu", {"lhu", 0b101, 0b0000011}},
-    {"slli", {"slli", 0b001, 0b0010011}},
-    {"srli", {"srli", 0b101, 0b0010011}},
-    {"srai", {"srai", 0b101, 0b0010011}},
-};
+  while (i < input.size() && (std::isalnum(input[i]) || input[i] == '_')) {
+    identifier.push_back(input[i]);
+    i++;
+  }
 
-const std::map<std::string, ISBType> STypeKinds = {
-    {"sb", {"sb", 0b000, 0b0100011}},
-    {"sh", {"sh", 0b001, 0b0100011}},
-    {"sw", {"sw", 0b010, 0b0100011}},
-};
+  int num;
+  try {
+    num = std::stoi(numStr);
+  } catch (const std::exception &e) {
+    throw std::runtime_error("Failed to parse number from string.");
+  }
 
-const std::map<std::string, ISBType> BTypeKinds = {
-    {"beq", {"beq", 0b000, 0b1100011}}, // Branch EQual
-    {"bne", {"bne", 0b001, 0b1100011}},
-    {"blt", {"blt", 0b100, 0b1100011}}, // Branch Less Than
-    {"bge", {"bge", 0b101, 0b1100011}},
-    {"bltu", {"bltu", 0b110, 0b1100011}},
-    {"bgeu", {"bgeu", 0b111, 0b1100011}},
-};
+  return {num, identifier};
+}
 
-class RType {
-private:
-  const std::string mnemonic;
-  const std::bitset<7> funct7;
-  const std::bitset<3> funct3;
-  const std::bitset<7> opcode;
+static const std::optional<std::bitset<5>> findReg(const std::string &RegStr) {
+  if (auto RI = GPRegs.find(RegStr); RI != GPRegs.end())
+    return RI->second;
+  assert(false && "invalid register name");
+  return std::nullopt;
+}
+
+} // namespace
+// TODO: IInst : Instruction
+// IInst(ISBType, StrArg0, StrArg1, StrArg2, StrArg3)
+// IInst->emitBinary(ostream)
+// IInst->dumpHex(ostream)
+// IInst->dumpBin(ostream)
+// IInst->pprint(ostream)
+class Instruction {
+  unsigned Val;
 
 public:
-  RType(const std::string &mnemonic, const unsigned funct7,
-        const unsigned funct3, const unsigned opcode)
-      : mnemonic(mnemonic), funct7(funct7), funct3(funct3), opcode(opcode) {}
-  const std::string &getMnemonic() const { return mnemonic; }
-  const std::bitset<7> &getFunct7() const { return funct7; }
-  const std::bitset<3> &getFunct3() const { return funct3; }
-  const std::bitset<7> &getOpcode() const { return opcode; }
-};
-const std::map<std::string, RType> RTypeKinds = {
-    {"add", {"add", 0b0000000, 0b000, 0b0110011}},
-    {"sub", {"sub", 0b0100000, 0b000, 0b0110011}},
-    {"sll", {"sll", 0b0000000, 0b001, 0b0110011}},
-    {"slt", {"slt", 0b0000000, 0b010, 0b0110011}},
-    {"sltu", {"sltu", 0b0000000, 0b011, 0b0110011}},
-    {"xor", {"xor", 0b0000000, 0b100, 0b0110011}},
-    {"srl", {"srl", 0b0000000, 0b101, 0b0110011}},
-    {"sra", {"sra", 0b0100000, 0b101, 0b0110011}},
-    {"or", {"or", 0b0000000, 0b110, 0b0110011}},
-    {"and", {"and", 0b0000000, 0b111, 0b0110011}},
+  void setVal(unsigned V) { Val = V; }
+  unsigned getVal() { return Val; }
+  void emitBinary(std::ostream &os) {
+    os.write(reinterpret_cast<char *>(&Val), 4);
+  }
+
+  void dumpHex() {
+    std::cerr << "Hex(LE): ";
+    for (int i = 0; i < sizeof(Val); ++i) {
+      unsigned char byte = (Val >> (i * 8)) & 0xFF;
+      std::cerr << std::hex << std::setw(2) << std::setfill('0')
+                << static_cast<int>(byte) << ' ';
+    }
+    std::cerr << "\n\n";
+  }
+
+  void dumpBin() {
+    std::bitset<32> binaryValue(Val);
+    std::cerr << "Binary(BE): ";
+    for (int i = 0; i < 32; ++i) {
+      std::cerr << ((binaryValue >> (31 - i)).to_ulong() & 1);
+      if (i % 8 == 7)
+        std::cerr << ' ';
+    }
+  }
+  virtual void pprint(std::ostream &) = 0;
+  virtual void exec(void) = 0;
+  virtual ~Instruction() {}
 };
 
-class UJType {
+class IInstruction : public Instruction {
 private:
-  const std::string mnemonic;
-  const std::bitset<7> opcode;
+  const ISBType &IT;
+
+  std::bitset<5> Rd, Rs1;
+  std::bitset<12> Imm;
 
 public:
-  UJType(const std::string &mnemonic, const unsigned opcode)
-      : mnemonic(mnemonic), opcode(opcode) {}
-  const std::string &getMnemonic() const { return mnemonic; }
-  const std::bitset<7> &getOpcode() const { return opcode; }
+  /// This is expected to be used on asm.
+  IInstruction(const ISBType &IT, const std::vector<std::string> &Toks)
+      : IT(IT) {
+    Rd = *findReg(Toks[1]);
+
+    // handle offset for loads
+    if (Toks.size() == 3) {
+      assert((IT.getMnemo() == "lb" || IT.getMnemo() == "lh" ||
+              IT.getMnemo() == "lw" || IT.getMnemo() == "lbu" ||
+              IT.getMnemo() == "lhu") &&
+             "invarid offset(reg) notation except loads");
+      // op rd, offset(rs1)
+      auto OffReg = parseOffsetReg(Toks[2]);
+      Rs1 = std::bitset<5>(OffReg.second);
+      Imm = OffReg.first;
+    } else {
+      // op rd,rs1,imm
+      Rs1 = *findReg(Toks[2]);
+      Imm = stoi(Toks[3]);
+    }
+
+    // srai immediate
+    if (Toks[0] == "srai")
+      Imm |= 1 << 10;
+
+    setVal((Imm.to_ulong() << 20) | (Rs1.to_ulong() << 15) |
+           (IT.getFunct3().to_ulong() << 12) | (Rd.to_ulong() << 7) |
+           IT.getOpcode().to_ulong());
+    std::cerr << "Imm is " << getVal() << "\n";
+  }
+  void pprint(std::ostream &) override {
+    std::cerr << IT.getMnemo() << "\n";
+    std::cerr << "TODO: clean \n";
+    unsigned V = getVal();
+    for (int i = 0; i < 32; ++i) {
+      if (i == 7 || i == 12 || i == 17 || i == 20 || i == 25)
+        std::cerr << ' ';
+      std::cerr << (V >> (31 - i) & 1);
+    }
+    assert(false && "unimplemented!");
+  }
+  void exec(void) override { assert(false && "unimplemented!"); }
 };
 
-const std::map<std::string, UJType> UTypeKinds = {
-    {"lui", {"lui", 0b0110111}},    // Load Upper Immediate
-    {"auipc", {"auipc", 0b0010111}} // Add Upper Immediate to PC
-};
+class RInstruction : public Instruction {
+private:
+  const RType &RT;
 
-const std::map<std::string, UJType> JTypeKinds = {
-    {"jal", {"jal", 0b1101111}} // Jump And Link
+  std::bitset<5> Rd, Rs1, Rs2;
+
+public:
+  /// This is expected to be used on asm.
+  RInstruction(const RType &RT, const std::vector<std::string> &Toks) : RT(RT) {
+    Rd = *findReg(Toks[1]);
+    Rs1 = *findReg(Toks[2]);
+    Rs2 = *findReg(Toks[3]);
+    setVal((RT.getFunct7().to_ulong() << 25) | (Rs2.to_ulong() << 20) |
+           (Rs1.to_ulong() << 15) | (RT.getFunct3().to_ulong() << 12) |
+           (Rd.to_ulong() << 7) | RT.getOpcode().to_ulong());
+  }
+  void pprint(std::ostream &) override {
+    std::cerr << RT.getMnemo() << "\n";
+    std::cerr << "TODO: clean \n";
+    unsigned V = getVal();
+    for (int i = 0; i < 32; ++i) {
+      if (i == 7 || i == 12 || i == 17 || i == 20 || i == 25)
+        std::cerr << ' ';
+      std::cerr << (V >> (31 - i) & 1);
+    }
+    assert(false && "unimplemented!");
+  }
+  void exec(void) override { assert(false && "unimplemented!"); }
 };
 
 #endif
