@@ -25,17 +25,17 @@ void BinaryEmitter::emitBinary(std::ostream &os) {
              "Wrong token number I-Type Inst.");
       auto UI = std::make_unique<IInstruction>(IT->second, Toks);
       InstT = std::move(UI);
+
     } else if (auto IT = RTypeKinds.find(Mnemo); IT != RTypeKinds.end()) {
       assert(Toks.size() == 4 && "Wrong token number R-Type Inst.");
       auto UI = std::make_unique<RInstruction>(IT->second, Toks);
       InstT = std::move(UI);
+
     } else if (auto IT = UTypeKinds.find(Mnemo); IT != UTypeKinds.end()) {
       assert(Toks.size() == 3 && "Wrong token number for U-Type Inst.");
-      UJType UTemp = IT->second;
-      std::bitset<7> Opcode = UTemp.getOpcode();
-      std::bitset<5> Rd = *findReg(Toks[1]);
-      std::bitset<20> Imm = stoi(Toks[2]);
-      Inst = (Imm.to_ulong() << 12) | (Rd.to_ulong() << 7) | Opcode.to_ulong();
+      auto UI = std::make_unique<UInstruction>(IT->second, Toks);
+      InstT = std::move(UI);
+
     } else if (auto IT = JTypeKinds.find(Mnemo); IT != JTypeKinds.end()) {
       assert(Toks.size() == 3 && "Wrong token number for J-Type Inst.");
       UJType UTemp = IT->second;
