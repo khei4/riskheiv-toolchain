@@ -40,12 +40,6 @@ static const std::optional<std::bitset<5>> findReg(const std::string &RegStr) {
 }
 
 } // namespace
-// TODO: IInst : Instruction
-// IInst(ISBType, StrArg0, StrArg1, StrArg2, StrArg3)
-// IInst->emitBinary(ostream)
-// IInst->dumpHex(ostream)
-// IInst->dumpBin(ostream)
-// IInst->pprint(ostream)
 class Instruction {
   unsigned Val;
 
@@ -119,15 +113,15 @@ public:
     std::cerr << "Imm is " << getVal() << "\n";
   }
   void pprint(std::ostream &) override {
+    assert(false && "unimplemented!");
     std::cerr << IT.getMnemo() << "\n";
-    std::cerr << "TODO: clean \n";
+    std::cerr << "TODO: pretty print for \n";
     unsigned V = getVal();
     for (int i = 0; i < 32; ++i) {
       if (i == 7 || i == 12 || i == 17 || i == 20 || i == 25)
         std::cerr << ' ';
       std::cerr << (V >> (31 - i) & 1);
     }
-    assert(false && "unimplemented!");
   }
   void exec(void) override { assert(false && "unimplemented!"); }
 };
@@ -150,6 +144,36 @@ public:
   }
   void pprint(std::ostream &) override {
     std::cerr << RT.getMnemo() << "\n";
+    std::cerr << "TODO: clean \n";
+    unsigned V = getVal();
+    for (int i = 0; i < 32; ++i) {
+      if (i == 7 || i == 12 || i == 17 || i == 20 || i == 25)
+        std::cerr << ' ';
+      std::cerr << (V >> (31 - i) & 1);
+    }
+    assert(false && "unimplemented!");
+  }
+  void exec(void) override { assert(false && "unimplemented!"); }
+};
+
+class UInstruction : public Instruction {
+private:
+  const UJType &UT;
+
+  std::bitset<5> Rd;
+  std::bitset<20> Imm;
+
+public:
+  /// This is expected to be used on asm.
+  UInstruction(const UJType &UT, const std::vector<std::string> &Toks)
+      : UT(UT) {
+    Rd = *findReg(Toks[1]);
+    Imm = stoi(Toks[2]);
+    setVal((Imm.to_ulong() << 12) | (Rd.to_ulong() << 7) |
+           UT.getOpcode().to_ulong());
+  }
+  void pprint(std::ostream &) override {
+    std::cerr << UT.getMnemo() << "\n";
     std::cerr << "TODO: clean \n";
     unsigned V = getVal();
     for (int i = 0; i < 32; ++i) {
