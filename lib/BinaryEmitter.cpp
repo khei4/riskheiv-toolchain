@@ -1,110 +1,34 @@
 #include "BinaryEmitter.h"
+#include "InstructionTypes.h"
 #include "Instructions.h"
 #include "Registers.h"
 #include <cassert>
 #include <iomanip>
 #include <iostream>
-#include <stdexcept>
+#include <memory>
 #include <optional>
+#include <stdexcept>
 
 #ifdef DEBUG
 #include "Debug.h"
 #endif
-// move this to Instructions
-static std::pair<int, std::string> parseOffsetReg(const std::string &input) {
-  std::string numStr, identifier;
-
-  size_t i = 0;
-  while (i < input.size() && (std::isdigit(input[i]) || input[i] == '-')) {
-    numStr.push_back(input[i]);
-    i++;
-  }
-
-  while (i < input.size() && (std::isalnum(input[i]) || input[i] == '_')) {
-    identifier.push_back(input[i]);
-    i++;
-  }
-
-  int num;
-  try {
-    num = std::stoi(numStr);
-  } catch (const std::exception &e) {
-    throw std::runtime_error("Failed to parse number from string.");
-  }
-
-  return {num, identifier};
-}
-
-static std::optional<std::bitset<5>> findReg(const std::string &RegStr) {
-  if (auto RI = GPRegs.find(RegStr); RI != GPRegs.end())
-    return RI->second;
-  assert(false && "invalid register name");
-  return std::nullopt;
-}
 
 void BinaryEmitter::emitBinary(std::ostream &os) {
   while (AP.parseLine()) {
     auto &Toks = AP.getTokens();
     auto &Mnemo = Toks[0];
+
     unsigned Inst = 0;
+    std::unique_ptr<Instruction> InstT;
     if (auto IT = ITypeKinds.find(Mnemo); IT != ITypeKinds.end()) {
       assert((Toks.size() == 4 || Toks.size() == 3) &&
              "Wrong token number I-Type Inst.");
-      // TODO: IInst : Instruction
-      // IInst(ISBType, StrArg0, StrArg1, StrArg2, StrArg3)
-      // IInst->emitBinary(ostream)
-      // IInst->dumpHex(ostream)
-      // IInst->dumpBin(ostream)
-      // IInst->pprint(ostream)
-
-      ISBType ITemp = IT->second;
-      std::bitset<3> Funct3 = ITemp.getFunct3();
-      std::bitset<7> Opcode = ITemp.getOpcode();
-
-      std::bitset<5> Rd, Rs1;
-      std::bitset<12> Imm;
-      Rd = *findReg(Toks[1]);
-
-      // handle offset for loads
-      if (Toks.size() == 3) {
-        assert((Mnemo == "lb" || Mnemo == "lh" || Mnemo == "lw" ||
-                Mnemo == "lbu" || Mnemo == "lhu") &&
-               "invarid offset(reg) notation except loads");
-        // op rd, offset(rs1)
-        auto OffReg = parseOffsetReg(Toks[2]);
-        Rs1 = std::bitset<5>(OffReg.second);
-        Imm = OffReg.first;
-      } else {
-        // op rd,rs1,imm
-        Rs1 = *findReg(Toks[2]);
-        Imm = stoi(Toks[3]);
-      }
-
-      // srai immediate
-      if (Mnemo == "srai")
-        Imm |= 1 << 10;
-
-      Inst = (Imm.to_ulong() << 20) | (Rs1.to_ulong() << 15) |
-             (Funct3.to_ulong() << 12) | (Rd.to_ulong() << 7) |
-             Opcode.to_ulong();
+      auto UI = std::make_unique<IInstruction>(IT->second, Toks);
+      InstT = std::move(UI);
     } else if (auto IT = RTypeKinds.find(Mnemo); IT != RTypeKinds.end()) {
       assert(Toks.size() == 4 && "Wrong token number R-Type Inst.");
-
-      RType RTemp = IT->second;
-      std::bitset<7> Funct7 = RTemp.getFunct7();
-      std::bitset<3> Funct3 = RTemp.getFunct3();
-      std::bitset<7> Opcode = RTemp.getOpcode();
-
-      std::bitset<5> Rd, Rs1, Rs2;
-
-      Rd = *findReg(Toks[1]);
-      Rs1 = *findReg(Toks[2]);
-      Rs2 = *findReg(Toks[3]);
-
-      // TODO: move this to constructor?
-      Inst = (Funct7.to_ulong() << 25) | (Rs2.to_ulong() << 20) |
-             (Rs1.to_ulong() << 15) | (Funct3.to_ulong() << 12) |
-             (Rd.to_ulong() << 7) | Opcode.to_ulong();
+      auto UI = std::make_unique<RInstruction>(IT->second, Toks);
+      InstT = std::move(UI);
     } else if (auto IT = UTypeKinds.find(Mnemo); IT != UTypeKinds.end()) {
       assert(Toks.size() == 3 && "Wrong token number for U-Type Inst.");
       UJType UTemp = IT->second;
@@ -174,9 +98,17 @@ void BinaryEmitter::emitBinary(std::ostream &os) {
     }
 
 // TODO: create DEBUGEXPR MACRO to shorten this
+    if (InstT != nullptr) {
+      InstT->emitBinary(os);
+#ifdef DEBUG
+      debugInst(Toks, InstT->getVal());
+#endif
+      InstT.reset();
+    } else {
 #ifdef DEBUG
     debugInst(Toks, Inst);
 #endif
     os.write(reinterpret_cast<char *>(&Inst), 4);
+    }
   }
 }
