@@ -3,6 +3,8 @@
 
 #include <bitset>
 #include <cstdint>
+#include <cstdio>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <string>
@@ -19,6 +21,13 @@ const std::map<std::string, std::bitset<5>> GPRegs = {
     {"s10", 26}, {"x27", 27}, {"s11", 27}, {"x28", 28}, {"t3", 28}, {"x29", 29},
     {"t4", 29},  {"x30", 30}, {"t5", 30},  {"x31", 31}, {"t6", 31}};
 
+static const std::string ABI[32] = {
+    "zero", " ra ", " sp ", " gp ", " tp ", " t0 ", " t1 ", " t2 ",
+    " s0 ", " s1 ", " a0 ", " a1 ", " a2 ", " a3 ", " a4 ", " a5 ",
+    " a6 ", " a7 ", " s2 ", " s3 ", " s4 ", " s5 ", " s6 ", " s7 ",
+    " s8 ", " s9 ", " s10", " s11", " t3 ", " t4 ", " t5 ", " t6 ",
+};
+
 using Reg = std::uint64_t;
 const unsigned RegNum = 32;
 class Registers {
@@ -30,7 +39,18 @@ public:
   Registers &operator=(const Registers &) = delete;
 
   Registers() : Regs{0} {}
-  void dump() { std::cerr << Regs[0]; }
+  void dump() {
+    for (unsigned i = 0; i < 32; ++i) {
+      char ValStr[10];
+      std::snprintf(ValStr, sizeof(ValStr), "0x%04llx", Regs[i]);
+      std::cerr << 'x' << std::left << std::setw(2) << std::setfill(' ') << i
+                << "(" << ABI[i] << ")"
+                << ":=" << std::right << std::setw(18) << std::setfill(' ')
+                << ValStr << ", ";
+      if (i % 4 == 3)
+        std::cerr << '\n';
+    }
+  }
 };
 
 #endif
