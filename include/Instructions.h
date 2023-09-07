@@ -259,4 +259,126 @@ public:
   }
 };
 
+class JInstruction : public Instruction {
+private:
+  const UJType &JT;
+
+  std::bitset<5> Rd;
+  std::bitset<21> Imm;
+
+public:
+  /// This is expected to be used on asm.
+  JInstruction(const UJType &JT, const std::vector<std::string> &Toks)
+      : JT(JT) {
+    unsigned M0 = 0b100000000000000000000;
+    unsigned M1 = 0b000000000011111111110;
+    unsigned M2 = 0b000000000100000000000;
+    unsigned M3 = 0b011111111000000000000;
+    Rd = *findReg(Toks[1]);
+    Imm = stoi(Toks[2]);
+    unsigned ImmU = Imm.to_ulong();
+    setVal((((ImmU & M0) >> 20) << 31) | (((ImmU & M1) >> 1) << 21) |
+           (((ImmU & M2) >> 11) << 20) | (((ImmU & M3) >> 12) << 12) |
+           (Rd.to_ulong() << 7) | JT.getOpcode().to_ulong());
+  }
+  void pprint(std::ostream &) override {
+    std::cerr << JT.getMnemo() << "\n";
+    std::cerr << "TODO: clean \n";
+    unsigned V = getVal();
+    for (int i = 0; i < 32; ++i) {
+      if (i == 7 || i == 12 || i == 17 || i == 20 || i == 25)
+        std::cerr << ' ';
+      std::cerr << (V >> (31 - i) & 1);
+    }
+    assert(false && "unimplemented!");
+  }
+  void exec(PC, GPRegisters &, Memory &, CustomRegisters &) override {
+    assert(false && "unimplemented!");
+  }
+};
+
+class SInstruction : public Instruction {
+private:
+  const ISBType &ST;
+
+  std::bitset<5> Rs1, Rs2;
+  std::bitset<12> Imm;
+
+public:
+  /// This is expected to be used on asm.
+  SInstruction(const ISBType &ST, const std::vector<std::string> &Toks)
+      : ST(ST) {
+
+    // sb/h/w rs2,offset(rs1)
+    Rs2 = *findReg(Toks[1]);
+    auto OffReg = parseOffsetReg(Toks[2]);
+    Rs1 = std::bitset<5>(OffReg.second);
+    Imm = OffReg.first;
+    unsigned M0 = 0b111111100000;
+    unsigned M1 = 0b000000011111;
+    unsigned ImmU = Imm.to_ulong();
+    setVal((((ImmU & M0) >> 5) << 25) | (Rs2.to_ulong() << 20) |
+           (Rs1.to_ulong() << 15) | (ST.getFunct3().to_ulong() << 12) |
+           ((ImmU & M1) << 7) | ST.getOpcode().to_ulong());
+  }
+  void pprint(std::ostream &) override {
+    std::cerr << ST.getMnemo() << "\n";
+    std::cerr << "TODO: clean \n";
+    unsigned V = getVal();
+    for (int i = 0; i < 32; ++i) {
+      if (i == 7 || i == 12 || i == 17 || i == 20 || i == 25)
+        std::cerr << ' ';
+      std::cerr << (V >> (31 - i) & 1);
+    }
+    assert(false && "unimplemented!");
+  }
+  void exec(PC, GPRegisters &, Memory &, CustomRegisters &) override {
+    assert(false && "unimplemented!");
+  }
+};
+
+class BInstruction : public Instruction {
+private:
+  const ISBType &BT;
+
+  std::bitset<5> Rs1, Rs2;
+  std::bitset<13> Imm;
+
+public:
+  /// This is expected to be used on asm.
+  BInstruction(const ISBType &BT, const std::vector<std::string> &Toks)
+      : BT(BT) {
+
+    Rs1 = *findReg(Toks[1]);
+    // TODO: handle label branch
+    Rs2 = *findReg(Toks[2]);
+
+    std::bitset<13> Imm;
+    unsigned M0 = 0b1000000000000;
+    unsigned M1 = 0b0011111100000;
+    unsigned M2 = 0b0000000011110;
+    unsigned M3 = 0b0100000000000;
+    Imm = stoi(Toks[3]);
+    unsigned ImmU = Imm.to_ulong();
+    setVal((((ImmU & M0) >> 12) << 31) | (((ImmU & M1) >> 5) << 25) |
+           (Rs2.to_ulong() << 20) | (Rs1.to_ulong() << 15) |
+           (BT.getFunct3().to_ulong() << 12) | (((ImmU & M2) >> 1) << 8) |
+           (((ImmU & M3) >> 11) << 7) | BT.getOpcode().to_ulong());
+  }
+  void pprint(std::ostream &) override {
+    std::cerr << BT.getMnemo() << "\n";
+    std::cerr << "TODO: clean \n";
+    unsigned V = getVal();
+    for (int i = 0; i < 32; ++i) {
+      if (i == 7 || i == 12 || i == 17 || i == 20 || i == 25)
+        std::cerr << ' ';
+      std::cerr << (V >> (31 - i) & 1);
+    }
+    assert(false && "unimplemented!");
+  }
+  void exec(PC, GPRegisters &, Memory &, CustomRegisters &) override {
+    assert(false && "unimplemented!");
+  }
+};
+
 #endif
