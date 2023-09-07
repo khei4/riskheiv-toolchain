@@ -2,6 +2,8 @@
 #define INSTRUCTIONS_H
 #include "InstructionTypes.h"
 #include "Registers.h"
+#include "Simulator/CustomRegisters.h"
+#include "Simulator/Memory.h"
 #include <cassert>
 #include <iomanip>
 #include <iostream>
@@ -34,13 +36,14 @@ parseOffsetReg(const std::string &input) {
 }
 
 static const std::optional<std::bitset<5>> findReg(const std::string &RegStr) {
-  if (auto RI = GPRegs.find(RegStr); RI != GPRegs.end())
+  if (auto RI = GPRegMap.find(RegStr); RI != GPRegMap.end())
     return RI->second;
   assert(false && "invalid register name");
   return std::nullopt;
 }
 
 } // namespace
+using PC = unsigned;
 class Instruction {
   unsigned Val;
 
@@ -71,9 +74,23 @@ public:
     }
   }
   virtual void pprint(std::ostream &) = 0;
-  virtual void exec(void) = 0;
+  virtual void exec(PC, GPRegisters &, Memory &, CustomRegisters &) = 0;
   virtual ~Instruction() {}
 };
+namespace {
+template <std::size_t N> int signExtend(const std::bitset<N> &bs) {
+  if (bs[N - 1]) {
+    std::bitset<sizeof(int) *CHAR_BIT> extended = ~0;
+    for (std::size_t i = 0; i < N; ++i) {
+      extended[i] = bs[i];
+    }
+    return static_cast<int>(extended.to_ulong());
+  } else {
+    return static_cast<int>(bs.to_ulong());
+  }
+}
+
+} // namespace
 
 class IInstruction : public Instruction {
 private:
@@ -111,7 +128,15 @@ public:
     setVal((Imm.to_ulong() << 20) | (Rs1.to_ulong() << 15) |
            (IT.getFunct3().to_ulong() << 12) | (Rd.to_ulong() << 7) |
            IT.getOpcode().to_ulong());
-    std::cerr << "Imm is " << getVal() << "\n";
+  }
+
+  IInstruction(const ISBType &IT, const unsigned Rd, const unsigned Rs1,
+               const unsigned Imm)
+      : IT(IT), Rd(Rd), Rs1(Rs1), Imm(Imm) {
+    // FIXME: rename member as _XX?
+    setVal((this->Imm.to_ulong() << 20) | (this->Rs1.to_ulong() << 15) |
+           (IT.getFunct3().to_ulong() << 12) | (this->Rd.to_ulong() << 7) |
+           IT.getOpcode().to_ulong());
   }
   void pprint(std::ostream &) override {
     assert(false && "unimplemented!");
@@ -124,7 +149,50 @@ public:
       std::cerr << (V >> (31 - i) & 1);
     }
   }
-  void exec(void) override { assert(false && "unimplemented!"); }
+  void exec(PC P, GPRegisters &GPRegs, Memory &M, CustomRegisters &) override {
+    std::string Mnemo = IT.getMnemo();
+    int ImmI = signExtend(Imm);
+    if (Mnemo == "addi")
+      GPRegs[Rd.to_ulong()] = GPRegs[Rs1.to_ulong()] + ImmI;
+    else if (Mnemo == "slti")
+      GPRegs[Rd.to_ulong()] = (signed)GPRegs[Rs1.to_ulong()] < ImmI;
+    else if (Mnemo == "sltiu")
+      GPRegs[Rd.to_ulong()] =
+          (unsigned)GPRegs[Rs1.to_ulong()] < ImmI; // FIXME: sext?
+    else if (Mnemo == "xori")
+      GPRegs[Rd.to_ulong()] =
+          (unsigned)GPRegs[Rs1.to_ulong()] ^ ImmI; // FIXME: sext?
+    else if (Mnemo == "ori")
+      GPRegs[Rd.to_ulong()] =
+          (unsigned)GPRegs[Rs1.to_ulong()] | ImmI; // FIXME: sext?
+    else if (Mnemo == "andi")
+      GPRegs[Rd.to_ulong()] =
+          (unsigned)GPRegs[Rs1.to_ulong()] & ImmI; // FIXME: sext?
+    else if (Mnemo == "jalr")
+      assert(false && "unimplemented!");
+    else if (Mnemo == "lb")
+      assert(false && "unimplemented!");
+    else if (Mnemo == "lh")
+      assert(false && "unimplemented!");
+    else if (Mnemo == "lw")
+      assert(false && "unimplemented!");
+    else if (Mnemo == "lbu")
+      assert(false && "unimplemented!");
+    else if (Mnemo == "lhu")
+      assert(false && "unimplemented!");
+    // FIXME: shamt
+    else if (Mnemo == "slli")
+      GPRegs[Rd.to_ulong()] = (unsigned)GPRegs[Rs1.to_ulong()]
+                              << Imm.to_ulong(); // FIXME: sext?
+    else if (Mnemo == "srli")
+      GPRegs[Rd.to_ulong()] =
+          (unsigned)GPRegs[Rs1.to_ulong()] >> Imm.to_ulong(); // FIXME: sext?
+    else if (Mnemo == "srai")
+      GPRegs[Rd.to_ulong()] =
+          (signed)GPRegs[Rs1.to_ulong()] >> Imm.to_ulong(); // FIXME: sext?
+    else
+      assert(false && "unimplemented! or not exist");
+  }
 };
 
 class RInstruction : public Instruction {
@@ -154,7 +222,9 @@ public:
     }
     assert(false && "unimplemented!");
   }
-  void exec(void) override { assert(false && "unimplemented!"); }
+  void exec(PC, GPRegisters &, Memory &, CustomRegisters &) override {
+    assert(false && "unimplemented!");
+  }
 };
 
 class UInstruction : public Instruction {
@@ -184,7 +254,9 @@ public:
     }
     assert(false && "unimplemented!");
   }
-  void exec(void) override { assert(false && "unimplemented!"); }
+  void exec(PC, GPRegisters &, Memory &, CustomRegisters &) override {
+    assert(false && "unimplemented!");
+  }
 };
 
 #endif

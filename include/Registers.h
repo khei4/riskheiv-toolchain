@@ -8,7 +8,7 @@
 #include <iostream>
 #include <map>
 #include <string>
-const std::map<std::string, std::bitset<5>> GPRegs = {
+const std::map<std::string, std::bitset<5>> GPRegMap = {
     {"x0", 0},   {"zero", 0}, {"x1", 1},   {"ra", 1},   {"x2", 2},  {"sp", 2},
     {"x3", 3},   {"gp", 3},   {"x4", 4},   {"tp", 4},   {"x5", 5},  {"t0", 5},
     {"x6", 6},   {"t1", 6},   {"x7", 7},   {"t2", 7},   {"x8", 8},  {"s0", 8},
@@ -30,15 +30,24 @@ static const std::string ABI[32] = {
 
 using Reg = std::uint64_t;
 const unsigned RegNum = 32;
-class Registers {
+class GPRegisters {
 private:
   Reg Regs[RegNum];
 
 public:
-  Registers(const Registers &) = delete;
-  Registers &operator=(const Registers &) = delete;
+  GPRegisters(const GPRegisters &) = delete;
+  GPRegisters &operator=(const GPRegisters &) = delete;
 
-  Registers() : Regs{0} {}
+  GPRegisters() : Regs{0} {}
+  Reg &operator[](unsigned index) {
+    assert(index < RegNum && "Index out of bounds");
+    return Regs[index];
+  }
+
+  const Reg &operator[](unsigned index) const {
+    assert(index < RegNum && "Index out of bounds");
+    return Regs[index];
+  }
   void dump() {
     for (unsigned i = 0; i < 32; ++i) {
       char ValStr[10];
