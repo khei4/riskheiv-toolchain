@@ -1,4 +1,4 @@
-#include "BinaryEmitter.h"
+#include "Assembler/BinaryEmitter.h"
 #include "InstructionTypes.h"
 #include "Instructions.h"
 #include "Registers.h"
@@ -18,6 +18,7 @@ void BinaryEmitter::emitBinary(std::ostream &os) {
     auto &Toks = AP.getTokens();
     auto &Mnemo = Toks[0];
 
+    // TODO: remove this
     unsigned Inst = 0;
     std::unique_ptr<Instruction> InstT;
     if (auto IT = ITypeKinds.find(Mnemo); IT != ITypeKinds.end()) {

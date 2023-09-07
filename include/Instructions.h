@@ -3,7 +3,8 @@
 #include "InstructionTypes.h"
 #include "Registers.h"
 #include <cassert>
-#include <ostream>
+#include <iomanip>
+#include <iostream>
 
 namespace {
 

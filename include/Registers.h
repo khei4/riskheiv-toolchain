@@ -2,6 +2,8 @@
 #define REGISTERS_H
 
 #include <bitset>
+#include <cstdint>
+#include <iostream>
 #include <map>
 #include <string>
 const std::map<std::string, std::bitset<5>> GPRegs = {
@@ -16,5 +18,19 @@ const std::map<std::string, std::bitset<5>> GPRegs = {
     {"s7", 23},  {"x24", 24}, {"s8", 24},  {"x25", 25}, {"s9", 25}, {"x26", 26},
     {"s10", 26}, {"x27", 27}, {"s11", 27}, {"x28", 28}, {"t3", 28}, {"x29", 29},
     {"t4", 29},  {"x30", 30}, {"t5", 30},  {"x31", 31}, {"t6", 31}};
+
+using Reg = std::uint64_t;
+const unsigned RegNum = 32;
+class Registers {
+private:
+  Reg Regs[RegNum];
+
+public:
+  Registers(const Registers &) = delete;
+  Registers &operator=(const Registers &) = delete;
+
+  Registers() : Regs{0} {}
+  void dump() { std::cerr << Regs[0]; }
+};
 
 #endif

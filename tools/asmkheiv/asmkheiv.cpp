@@ -1,9 +1,10 @@
-#include <BinaryEmitter.h>
+#include "Assembler/BinaryEmitter.h"
 #include <cassert>
 
 int main(int argc, char **argv) {
+  // TODO: handle -o option
   if (argc < 2) {
-    std::cerr << "Usage: " << argv[0] << " <filename>"
+    std::cerr << "Usage: " << argv[0] << " <assembler file name>"
               << "\n";
     return 1;
   }
