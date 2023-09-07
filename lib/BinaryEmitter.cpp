@@ -98,7 +98,7 @@ void BinaryEmitter::emitBinary(std::ostream &os) {
       assert(false && "unimplemented!");
     }
 
-// TODO: create DEBUGEXPR MACRO to shorten this
+    // TODO: create DEBUGEXPR MACRO to shorten this
     if (InstT != nullptr) {
       InstT->emitBinary(os);
 #ifdef DEBUG
@@ -107,9 +107,9 @@ void BinaryEmitter::emitBinary(std::ostream &os) {
       InstT.reset();
     } else {
 #ifdef DEBUG
-    debugInst(Toks, Inst);
+      debugInst(Toks, Inst);
 #endif
-    os.write(reinterpret_cast<char *>(&Inst), 4);
+      os.write(reinterpret_cast<char *>(&Inst), 4);
     }
   }
 }
