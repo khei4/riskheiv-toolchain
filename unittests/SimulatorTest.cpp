@@ -63,3 +63,25 @@ TEST(SimulatorTest, SLTIU) {
         << ", got: " << Res[i];
   }
 }
+
+TEST(SimulatorTest, XORI) {
+  const unsigned char BYTES[] = {
+      0x13, 0x08, 0x50, 0x00, // addi x16, x0, 5
+      0x93, 0x48, 0x38, 0x00, // xori x17, x16, 3
+      0x93, 0x47, 0xf8, 0xff, // xori x15, x16, -1
+  };
+
+  const GPRegisters EXPECTED = {{15, -6}, {16, 5}, {17, 6}};
+  std::stringstream ss;
+  ss.write(reinterpret_cast<const char *>(BYTES), sizeof(BYTES));
+
+  Simulator Sim(ss);
+  Sim.exec();
+  GPRegisters &Res = Sim.getGPRegs();
+
+  for (unsigned i = 0; i < 32; ++i) {
+    EXPECT_EQ(Res[i], EXPECTED[i])
+        << "Register:" << i << ", expected: " << EXPECTED[i]
+        << ", got: " << Res[i];
+  }
+}
