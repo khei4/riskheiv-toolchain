@@ -6,6 +6,9 @@
 #include "Simulator/Memory.h"
 #include <cassert>
 #include <iomanip>
+#include <optional>
+#include <vector>
+#include <climits>
 #include <iostream>
 
 namespace {

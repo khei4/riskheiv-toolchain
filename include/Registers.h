@@ -2,6 +2,7 @@
 #define REGISTERS_H
 
 #include <bitset>
+#include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <iomanip>
@@ -51,7 +52,7 @@ public:
   void dump() {
     for (unsigned i = 0; i < 32; ++i) {
       char ValStr[10];
-      std::snprintf(ValStr, sizeof(ValStr), "0x%04llx", Regs[i]);
+      std::snprintf(ValStr, sizeof(ValStr), "0x%04lx", Regs[i]);
       std::cerr << 'x' << std::left << std::setw(2) << std::setfill(' ') << i
                 << "(" << ABI[i] << ")"
                 << ":=" << std::right << std::setw(18) << std::setfill(' ')
