@@ -6,10 +6,9 @@
 #include "Simulator/Memory.h"
 #include <cassert>
 #include <iomanip>
+#include <iostream>
 #include <optional>
 #include <vector>
-#include <climits>
-#include <iostream>
 
 namespace {
 
@@ -77,13 +76,13 @@ public:
     }
   }
   virtual void pprint(std::ostream &) = 0;
-  virtual void exec(PC, GPRegisters &, Memory &, CustomRegisters &) = 0;
+  virtual void exec(PC &, GPRegisters &, Memory &, CustomRegisters &) = 0;
   virtual ~Instruction() {}
 };
 namespace {
 template <std::size_t N> int signExtend(const std::bitset<N> &bs) {
   if (bs[N - 1]) {
-    std::bitset<sizeof(int) *CHAR_BIT> extended = ~0;
+    std::bitset<sizeof(int)> extended = ~0;
     for (std::size_t i = 0; i < N; ++i) {
       extended[i] = bs[i];
     }
@@ -152,7 +151,7 @@ public:
       std::cerr << (V >> (31 - i) & 1);
     }
   }
-  void exec(PC P, GPRegisters &GPRegs, Memory &M, CustomRegisters &) override {
+  void exec(PC &P, GPRegisters &GPRegs, Memory &M, CustomRegisters &) override {
     std::string Mnemo = IT.getMnemo();
     int ImmI = signExtend(Imm);
     if (Mnemo == "addi")
@@ -225,7 +224,7 @@ public:
     }
     assert(false && "unimplemented!");
   }
-  void exec(PC, GPRegisters &, Memory &, CustomRegisters &) override {
+  void exec(PC &, GPRegisters &, Memory &, CustomRegisters &) override {
     assert(false && "unimplemented!");
   }
 };
@@ -257,7 +256,7 @@ public:
     }
     assert(false && "unimplemented!");
   }
-  void exec(PC, GPRegisters &, Memory &, CustomRegisters &) override {
+  void exec(PC &, GPRegisters &, Memory &, CustomRegisters &) override {
     assert(false && "unimplemented!");
   }
 };
@@ -295,7 +294,7 @@ public:
     }
     assert(false && "unimplemented!");
   }
-  void exec(PC, GPRegisters &, Memory &, CustomRegisters &) override {
+  void exec(PC &, GPRegisters &, Memory &, CustomRegisters &) override {
     assert(false && "unimplemented!");
   }
 };
@@ -335,7 +334,7 @@ public:
     }
     assert(false && "unimplemented!");
   }
-  void exec(PC, GPRegisters &, Memory &, CustomRegisters &) override {
+  void exec(PC &, GPRegisters &, Memory &, CustomRegisters &) override {
     assert(false && "unimplemented!");
   }
 };
@@ -379,7 +378,7 @@ public:
     }
     assert(false && "unimplemented!");
   }
-  void exec(PC, GPRegisters &, Memory &, CustomRegisters &) override {
+  void exec(PC &, GPRegisters &, Memory &, CustomRegisters &) override {
     assert(false && "unimplemented!");
   }
 };
