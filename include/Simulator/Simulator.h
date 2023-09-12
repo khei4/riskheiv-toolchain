@@ -95,6 +95,7 @@ public:
     }
     std::cerr << '\n';
   }
+  GPRegisters &getGPRegs() { return GPRegs; }
 
   void exec() {
     unsigned PC = 0;
