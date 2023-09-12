@@ -29,7 +29,7 @@ static const std::string ABI[32] = {
     " s8 ", " s9 ", " s10", " s11", " t3 ", " t4 ", " t5 ", " t6 ",
 };
 
-using Reg = std::uint64_t;
+using Reg = std::uint32_t;
 const unsigned RegNum = 32;
 class GPRegisters {
 private:
@@ -40,6 +40,13 @@ public:
   GPRegisters &operator=(const GPRegisters &) = delete;
 
   GPRegisters() : Regs{0} {}
+  GPRegisters(std::initializer_list<std::pair<unsigned, Reg>> init_list)
+      : Regs{0} {
+    for (const auto &p : init_list) {
+      assert(p.first < RegNum && "Register index out of bounds.");
+      Regs[p.first] = p.second;
+    }
+  }
   Reg &operator[](unsigned index) {
     assert(index < RegNum && "Index out of bounds");
     return Regs[index];
@@ -49,10 +56,17 @@ public:
     assert(index < RegNum && "Index out of bounds");
     return Regs[index];
   }
+
+  const Reg &operator[](std::string name) const {
+    auto IT = GPRegMap.find(name);
+    assert(IT != GPRegMap.end() && "No such registers.");
+    return Regs[(IT->second).to_ulong()];
+  }
+
   void dump() {
     for (unsigned i = 0; i < 32; ++i) {
       char ValStr[10];
-      std::snprintf(ValStr, sizeof(ValStr), "0x%04lx", Regs[i]);
+      std::snprintf(ValStr, sizeof(ValStr), "0x%04x", Regs[i]);
       std::cerr << 'x' << std::left << std::setw(2) << std::setfill(' ') << i
                 << "(" << ABI[i] << ")"
                 << ":=" << std::right << std::setw(18) << std::setfill(' ')
