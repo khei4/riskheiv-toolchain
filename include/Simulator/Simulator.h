@@ -15,6 +15,8 @@ private:
   CPU C;
   Memory M;
   unsigned CodeSize;
+  Address PC;
+  // FIXME: byref?
   GPRegisters GPRegs;
   CustomRegisters CRegs;
   std::map<Address, std::unique_ptr<Instruction>> PCInstMap;
@@ -23,9 +25,10 @@ public:
   Simulator(const Simulator &) = delete;
   Simulator &operator=(const Simulator &) = delete;
 
-  Simulator(std::istream &is) {
+  Simulator(std::istream &is) : PC(DRAM_BASE) {
     // TODO: parse per 2 bytes for compressed instructions
     char Buff[4];
+    // starts from DRAM_BASE
     Address P = DRAM_BASE;
     while (is.read(Buff, 4)) {
       unsigned InstVal = *(reinterpret_cast<unsigned *>(Buff));
@@ -138,14 +141,16 @@ public:
   }
   GPRegisters &getGPRegs() { return GPRegs; }
 
-  void exec() {
-    Address PC = DRAM_BASE;
+  void execFromDRAMBASE() {
+    PC = DRAM_BASE;
     while (auto &I = PCInstMap[PC]) {
       I->exec(PC, GPRegs, M, CRegs);
     }
+    std::cerr << "stop on no instraction address\n";
   }
 
   void dumpGPRegs() { GPRegs.dump(); }
+  Address &getPC() { return PC; }
 };
 
 #endif

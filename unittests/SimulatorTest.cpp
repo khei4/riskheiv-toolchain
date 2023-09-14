@@ -12,7 +12,7 @@ TEST(SimulatorTest, ADDI) {
   ss.write(reinterpret_cast<const char *>(BYTES), sizeof(BYTES));
 
   Simulator Sim(ss);
-  Sim.exec();
+  Sim.execFromDRAMBASE();
   GPRegisters &Res = Sim.getGPRegs();
 
   for (unsigned i = 0; i < 32; ++i) {
@@ -32,7 +32,7 @@ TEST(SimulatorTest, SLTI) {
   ss.write(reinterpret_cast<const char *>(BYTES), sizeof(BYTES));
 
   Simulator Sim(ss);
-  Sim.exec();
+  Sim.execFromDRAMBASE();
   GPRegisters &Res = Sim.getGPRegs();
 
   for (unsigned i = 0; i < 32; ++i) {
@@ -54,7 +54,7 @@ TEST(SimulatorTest, SLTIU) {
   ss.write(reinterpret_cast<const char *>(BYTES), sizeof(BYTES));
 
   Simulator Sim(ss);
-  Sim.exec();
+  Sim.execFromDRAMBASE();
   GPRegisters &Res = Sim.getGPRegs();
 
   for (unsigned i = 0; i < 32; ++i) {
@@ -76,7 +76,7 @@ TEST(SimulatorTest, XORI) {
   ss.write(reinterpret_cast<const char *>(BYTES), sizeof(BYTES));
 
   Simulator Sim(ss);
-  Sim.exec();
+  Sim.execFromDRAMBASE();
   GPRegisters &Res = Sim.getGPRegs();
 
   for (unsigned i = 0; i < 32; ++i) {
@@ -97,7 +97,7 @@ TEST(SimulatorTest, AUIPC) {
   ss.write(reinterpret_cast<const char *>(BYTES), sizeof(BYTES));
 
   Simulator Sim(ss);
-  Sim.exec();
+  Sim.execFromDRAMBASE();
   GPRegisters &Res = Sim.getGPRegs();
 
   for (unsigned i = 0; i < 32; ++i) {
@@ -120,7 +120,7 @@ TEST(SimulatorTest, SWLW) {
   ss.write(reinterpret_cast<const char *>(BYTES), sizeof(BYTES));
 
   Simulator Sim(ss);
-  Sim.exec();
+  Sim.execFromDRAMBASE();
   GPRegisters &Res = Sim.getGPRegs();
 
   for (unsigned i = 0; i < 32; ++i) {
@@ -128,4 +128,27 @@ TEST(SimulatorTest, SWLW) {
         << "Register:" << i << ", expected: " << EXPECTED[i]
         << ", got: " << Res[i];
   }
+}
+
+TEST(SimulatorTest, JALR) {
+  const unsigned char BYTES[] = {
+      0x67, 0x09, 0xc0, 0x02, // jalr x18, x0, 44
+  };
+
+  const GPRegisters EXPECTED = {{18, DRAM_BASE + 4}};
+  std::stringstream ss;
+  ss.write(reinterpret_cast<const char *>(BYTES), sizeof(BYTES));
+
+  Simulator Sim(ss);
+  Sim.execFromDRAMBASE();
+  GPRegisters &Res = Sim.getGPRegs();
+
+  for (unsigned i = 0; i < 32; ++i) {
+    EXPECT_EQ(Res[i], EXPECTED[i])
+        << "Register:" << i << ", expected: " << EXPECTED[i]
+        << ", got: " << Res[i];
+  }
+  EXPECT_EQ(Sim.getPC(), 44)
+      << "PC"
+      << ", expected: " << 44 << ", got: " << Sim.getPC();
 }
