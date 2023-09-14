@@ -46,6 +46,7 @@ add_subdirectory(lib)
 
 add_subdirectory(tools)
 
+enable_testing()
 include(FetchContent)
 
 if(${CMAKE_VERSION} VERSION_LESS "3.25")
@@ -74,7 +75,7 @@ add_custom_target(unittests
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 
 
-add_custom_target(test
+add_custom_target(asmtest
   COMMAND make -C ../tests test
   DEPENDS asmkheiv simkheiv
 )
