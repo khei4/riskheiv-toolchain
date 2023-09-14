@@ -85,3 +85,47 @@ TEST(SimulatorTest, XORI) {
         << ", got: " << Res[i];
   }
 }
+
+TEST(SimulatorTest, AUIPC) {
+  const unsigned char BYTES[] = {
+      0x97, 0x08, 0x00, 0x00, // auipc x17, 0
+      0x17, 0x28, 0x00, 0x00, // auipc x16, 2
+  };
+
+  const GPRegisters EXPECTED = {{16, DRAM_BASE + 4 + 0x2000}, {17, DRAM_BASE}};
+  std::stringstream ss;
+  ss.write(reinterpret_cast<const char *>(BYTES), sizeof(BYTES));
+
+  Simulator Sim(ss);
+  Sim.exec();
+  GPRegisters &Res = Sim.getGPRegs();
+
+  for (unsigned i = 0; i < 32; ++i) {
+    EXPECT_EQ(Res[i], EXPECTED[i])
+        << "Register:" << i << ", expected: " << EXPECTED[i]
+        << ", got: " << Res[i];
+  }
+}
+
+TEST(SimulatorTest, SWLW) {
+  const unsigned char BYTES[] = {
+      0x13, 0x08, 0x00, 0x80, // addi x16, x0, -2048
+      0x93, 0x08, 0x30, 0x00, // addi x17, x0, 3
+      0x23, 0x2e, 0x01, 0xff, // sw x16, -4(sp)
+      0x03, 0x29, 0xc1, 0xff, // lw x18, -4(sp)
+  };
+
+  const GPRegisters EXPECTED = {{16, -2048}, {17, 3}, {18, -2048}};
+  std::stringstream ss;
+  ss.write(reinterpret_cast<const char *>(BYTES), sizeof(BYTES));
+
+  Simulator Sim(ss);
+  Sim.exec();
+  GPRegisters &Res = Sim.getGPRegs();
+
+  for (unsigned i = 0; i < 32; ++i) {
+    EXPECT_EQ(Res[i], EXPECTED[i])
+        << "Register:" << i << ", expected: " << EXPECTED[i]
+        << ", got: " << Res[i];
+  }
+}

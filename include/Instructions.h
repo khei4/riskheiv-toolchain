@@ -45,7 +45,6 @@ static const std::optional<std::bitset<5>> findReg(const std::string &RegStr) {
 }
 
 } // namespace
-using PC = unsigned;
 class Instruction {
   unsigned Val;
 
@@ -76,7 +75,7 @@ public:
     }
   }
   virtual void pprint(std::ostream &) = 0;
-  virtual void exec(PC &, GPRegisters &, Memory &, CustomRegisters &) = 0;
+  virtual void exec(Address &, GPRegisters &, Memory &, CustomRegisters &) = 0;
   virtual ~Instruction() {}
 };
 namespace {
@@ -102,7 +101,7 @@ private:
   std::bitset<12> Imm;
 
 public:
-  /// This is expected to be used on asm.
+  /// Encoding
   IInstruction(const ISBType &IT, const std::vector<std::string> &Toks)
       : IT(IT) {
     Rd = *findReg(Toks[1]);
@@ -140,6 +139,7 @@ public:
            (IT.getFunct3().to_ulong() << 12) | (this->Rd.to_ulong() << 7) |
            IT.getOpcode().to_ulong());
   }
+
   void pprint(std::ostream &) override {
     assert(false && "unimplemented!");
     std::cerr << IT.getMnemo() << "\n";
@@ -151,7 +151,8 @@ public:
       std::cerr << (V >> (31 - i) & 1);
     }
   }
-  void exec(PC &P, GPRegisters &GPRegs, Memory &M, CustomRegisters &) override;
+  void exec(Address &P, GPRegisters &GPRegs, Memory &M,
+            CustomRegisters &) override;
 };
 
 class RInstruction : public Instruction {
@@ -181,7 +182,7 @@ public:
     }
     assert(false && "unimplemented!");
   }
-  void exec(PC &, GPRegisters &, Memory &, CustomRegisters &) override {
+  void exec(Address &, GPRegisters &, Memory &, CustomRegisters &) override {
     assert(false && "unimplemented!");
   }
 };
@@ -202,6 +203,13 @@ public:
     setVal((Imm.to_ulong() << 12) | (Rd.to_ulong() << 7) |
            UT.getOpcode().to_ulong());
   }
+
+  UInstruction(const UJType &UT, const unsigned Rd, const unsigned Imm)
+      : UT(UT), Rd(Rd), Imm(Imm) {
+    // FIXME: rename member as _XX?
+    setVal((this->Imm.to_ulong() << 12) | (this->Rd.to_ulong() << 7) |
+           UT.getOpcode().to_ulong());
+  }
   void pprint(std::ostream &) override {
     std::cerr << UT.getMnemo() << "\n";
     std::cerr << "TODO: clean \n";
@@ -213,9 +221,7 @@ public:
     }
     assert(false && "unimplemented!");
   }
-  void exec(PC &, GPRegisters &, Memory &, CustomRegisters &) override {
-    assert(false && "unimplemented!");
-  }
+  void exec(Address &, GPRegisters &, Memory &, CustomRegisters &) override;
 };
 
 class JInstruction : public Instruction {
@@ -251,7 +257,7 @@ public:
     }
     assert(false && "unimplemented!");
   }
-  void exec(PC &, GPRegisters &, Memory &, CustomRegisters &) override {
+  void exec(Address &, GPRegisters &, Memory &, CustomRegisters &) override {
     assert(false && "unimplemented!");
   }
 };
@@ -280,6 +286,18 @@ public:
            (Rs1.to_ulong() << 15) | (ST.getFunct3().to_ulong() << 12) |
            ((ImmU & M1) << 7) | ST.getOpcode().to_ulong());
   }
+
+  SInstruction(const ISBType &ST, const unsigned Rs1, const unsigned Rs2,
+               const unsigned Imm)
+      : ST(ST), Rs1(Rs1), Rs2(Rs2), Imm(Imm) {
+    // FIXME: rename member as _XX?
+    unsigned M0 = 0b111111100000;
+    unsigned M1 = 0b000000011111;
+    setVal((((Imm & M0) >> 5) << 25) | (this->Rs2.to_ulong() << 20) |
+           (this->Rs1.to_ulong() << 15) | (ST.getFunct3().to_ulong() << 12) |
+           ((Imm & M1) << 7) | ST.getOpcode().to_ulong());
+  }
+
   void pprint(std::ostream &) override {
     std::cerr << ST.getMnemo() << "\n";
     std::cerr << "TODO: clean \n";
@@ -291,9 +309,7 @@ public:
     }
     assert(false && "unimplemented!");
   }
-  void exec(PC &, GPRegisters &, Memory &, CustomRegisters &) override {
-    assert(false && "unimplemented!");
-  }
+  void exec(Address &, GPRegisters &, Memory &, CustomRegisters &) override;
 };
 
 class BInstruction : public Instruction {
@@ -335,7 +351,7 @@ public:
     }
     assert(false && "unimplemented!");
   }
-  void exec(PC &, GPRegisters &, Memory &, CustomRegisters &) override {
+  void exec(Address &, GPRegisters &, Memory &, CustomRegisters &) override {
     assert(false && "unimplemented!");
   }
 };
