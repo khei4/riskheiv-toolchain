@@ -10,7 +10,7 @@ void IInstruction::exec(Address &PC, GPRegisters &GPRegs, Memory &M,
     GPRegs[Rd.to_ulong()] = (signed)GPRegs[Rs1.to_ulong()] < ImmI;
     PC += 4;
   } else if (Mnemo == "sltiu") {
-    GPRegs[Rd.to_ulong()] = (unsigned)GPRegs[Rs1.to_ulong()] < ImmI;
+    GPRegs[Rd.to_ulong()] = (unsigned)GPRegs[Rs1.to_ulong()] < (unsigned)ImmI;
     PC += 4;
   } else if (Mnemo == "xori") {
     GPRegs[Rd.to_ulong()] = (unsigned)GPRegs[Rs1.to_ulong()] ^ ImmI;

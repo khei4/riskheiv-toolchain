@@ -57,7 +57,7 @@ public:
 
   void dumpHex() {
     std::cerr << "Hex(LE): ";
-    for (int i = 0; i < sizeof(Val); ++i) {
+    for (long unsigned i = 0; i < sizeof(Val); ++i) {
       unsigned char byte = (Val >> (i * 8)) & 0xFF;
       std::cerr << std::hex << std::setw(2) << std::setfill('0')
                 << static_cast<int>(byte) << ' ';
