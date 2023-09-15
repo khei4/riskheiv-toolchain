@@ -54,26 +54,6 @@ public:
   void emitBinary(std::ostream &os) {
     os.write(reinterpret_cast<char *>(&Val), 4);
   }
-
-  void dumpHex() {
-    std::cerr << "Hex(LE): ";
-    for (long unsigned i = 0; i < sizeof(Val); ++i) {
-      unsigned char byte = (Val >> (i * 8)) & 0xFF;
-      std::cerr << std::hex << std::setw(2) << std::setfill('0')
-                << static_cast<int>(byte) << ' ';
-    }
-    std::cerr << "\n\n";
-  }
-
-  void dumpBin() {
-    std::bitset<32> binaryValue(Val);
-    std::cerr << "Binary(BE): ";
-    for (int i = 0; i < 32; ++i) {
-      std::cerr << ((binaryValue >> (31 - i)).to_ulong() & 1);
-      if (i % 8 == 7)
-        std::cerr << ' ';
-    }
-  }
   virtual void pprint(std::ostream &) = 0;
   virtual void exec(Address &, GPRegisters &, Memory &, CustomRegisters &) = 0;
   virtual ~Instruction() {}
@@ -140,16 +120,32 @@ public:
            IT.getOpcode().to_ulong());
   }
 
-  void pprint(std::ostream &) override {
-    assert(false && "unimplemented!");
-    std::cerr << IT.getMnemo() << "\n";
-    std::cerr << "TODO: pretty print for \n";
+  void pprint(std::ostream &os) override {
+    if (IT.getMnemo() == "lb" || IT.getMnemo() == "lh" ||
+        IT.getMnemo() == "lw" || IT.getMnemo() == "lbu" ||
+        IT.getMnemo() == "lhu")
+      os << IT.getMnemo() << " " << ABI[Rd.to_ulong()] << " "
+         << "(" << std::dec << signExtend(Imm) << ")" << ABI[Rs1.to_ulong()];
+    else
+      os << IT.getMnemo() << " " << ABI[Rd.to_ulong()] << " "
+         << ABI[Rs1.to_ulong()] << " " << std::dec << signExtend(Imm);
+    os << " := ";
+
     unsigned V = getVal();
     for (int i = 0; i < 32; ++i) {
-      if (i == 7 || i == 12 || i == 17 || i == 20 || i == 25)
-        std::cerr << ' ';
-      std::cerr << (V >> (31 - i) & 1);
+      if (i == 12 || i == 17 || i == 20 || i == 25)
+        os << ' ';
+      os << (V >> (31 - i) & 1);
     }
+
+    os << "(BIN) = ";
+    for (unsigned long i = 0; i < sizeof(V); ++i) {
+      unsigned char byte = (V >> (i * 8)) & 0xFF;
+      std::cerr << std::hex << std::setw(2) << std::setfill('0')
+                << static_cast<int>(byte) << ' ';
+    }
+    os << "(HEX LE)";
+    os << "\n";
   }
   void exec(Address &P, GPRegisters &GPRegs, Memory &M,
             CustomRegisters &) override;
@@ -181,16 +177,26 @@ public:
            (this->Rd.to_ulong() << 7) | RT.getOpcode().to_ulong());
   }
 
-  void pprint(std::ostream &) override {
-    std::cerr << RT.getMnemo() << "\n";
-    std::cerr << "TODO: clean \n";
+  void pprint(std::ostream &os) override {
+    os << RT.getMnemo() << " " << ABI[Rd.to_ulong()] << " "
+       << ABI[Rs1.to_ulong()] << " " << ABI[Rs2.to_ulong()];
+    os << " := ";
+
     unsigned V = getVal();
     for (int i = 0; i < 32; ++i) {
       if (i == 7 || i == 12 || i == 17 || i == 20 || i == 25)
-        std::cerr << ' ';
-      std::cerr << (V >> (31 - i) & 1);
+        os << ' ';
+      os << (V >> (31 - i) & 1);
     }
-    assert(false && "unimplemented!");
+
+    os << "(BIN) = ";
+    for (unsigned long i = 0; i < sizeof(V); ++i) {
+      unsigned char byte = (V >> (i * 8)) & 0xFF;
+      os << std::hex << std::setw(2) << std::setfill('0')
+         << static_cast<int>(byte) << ' ';
+    }
+    os << "(HEX LE)";
+    os << "\n";
   }
   void exec(Address &, GPRegisters &, Memory &, CustomRegisters &) override;
 };
@@ -218,16 +224,26 @@ public:
     setVal((this->Imm.to_ulong() << 12) | (this->Rd.to_ulong() << 7) |
            UT.getOpcode().to_ulong());
   }
-  void pprint(std::ostream &) override {
-    std::cerr << UT.getMnemo() << "\n";
-    std::cerr << "TODO: clean \n";
+  void pprint(std::ostream &os) override {
+    os << UT.getMnemo() << " " << ABI[Rd.to_ulong()] << " " << std::dec
+       << signExtend(Imm);
+    os << " := ";
+
     unsigned V = getVal();
     for (int i = 0; i < 32; ++i) {
-      if (i == 7 || i == 12 || i == 17 || i == 20 || i == 25)
-        std::cerr << ' ';
-      std::cerr << (V >> (31 - i) & 1);
+      if (i == 20 || i == 25)
+        os << ' ';
+      os << (V >> (31 - i) & 1);
     }
-    assert(false && "unimplemented!");
+
+    os << "(BIN) = ";
+    for (unsigned long i = 0; i < sizeof(V); ++i) {
+      unsigned char byte = (V >> (i * 8)) & 0xFF;
+      os << std::hex << std::setw(2) << std::setfill('0')
+         << static_cast<int>(byte) << ' ';
+    }
+    os << "(HEX LE)";
+    os << "\n";
   }
   void exec(Address &, GPRegisters &, Memory &, CustomRegisters &) override;
 };
@@ -265,16 +281,25 @@ public:
            (((Imm & M2) >> 11) << 20) | (((Imm & M3) >> 12) << 12) | (Rd << 7) |
            JT.getOpcode().to_ulong());
   }
-  void pprint(std::ostream &) override {
-    std::cerr << JT.getMnemo() << "\n";
-    std::cerr << "TODO: clean \n";
+  void pprint(std::ostream &os) override {
+    os << JT.getMnemo() << " " << ABI[Rd.to_ulong()] << " " << std::dec
+       << signExtend(Imm);
+    os << " :=";
+
     unsigned V = getVal();
     for (int i = 0; i < 32; ++i) {
-      if (i == 7 || i == 12 || i == 17 || i == 20 || i == 25)
-        std::cerr << ' ';
-      std::cerr << (V >> (31 - i) & 1);
+      if (i == 20 || i == 25)
+        os << ' ';
+      os << (V >> (31 - i) & 1);
     }
-    assert(false && "unimplemented!");
+    os << "(BIN) = ";
+    for (unsigned long i = 0; i < sizeof(V); ++i) {
+      unsigned char byte = (V >> (i * 8)) & 0xFF;
+      os << std::hex << std::setw(2) << std::setfill('0')
+         << static_cast<int>(byte) << ' ';
+    }
+    os << "(HEX LE)";
+    os << "\n";
   }
   void exec(Address &, GPRegisters &, Memory &, CustomRegisters &) override;
 };
@@ -315,16 +340,26 @@ public:
            ((Imm & M1) << 7) | ST.getOpcode().to_ulong());
   }
 
-  void pprint(std::ostream &) override {
-    std::cerr << ST.getMnemo() << "\n";
-    std::cerr << "TODO: clean \n";
+  void pprint(std::ostream &os) override {
+    os << ST.getMnemo() << " " << ABI[Rs2.to_ulong()] << " "
+       << "(" << std::dec << signExtend(Imm) << ")" << ABI[Rs1.to_ulong()];
+    os << " :=";
+
     unsigned V = getVal();
     for (int i = 0; i < 32; ++i) {
       if (i == 7 || i == 12 || i == 17 || i == 20 || i == 25)
-        std::cerr << ' ';
-      std::cerr << (V >> (31 - i) & 1);
+        os << ' ';
+      os << (V >> (31 - i) & 1);
     }
-    assert(false && "unimplemented!");
+
+    os << "(BIN) = ";
+    for (unsigned long i = 0; i < sizeof(V); ++i) {
+      unsigned char byte = (V >> (i * 8)) & 0xFF;
+      os << std::hex << std::setw(2) << std::setfill('0')
+         << static_cast<int>(byte) << ' ';
+    }
+    os << "(HEX LE)";
+    os << "\n";
   }
   void exec(Address &, GPRegisters &, Memory &, CustomRegisters &) override;
 };
@@ -373,16 +408,24 @@ public:
            (((Imm & M3) >> 11) << 7) | BT.getOpcode().to_ulong());
   }
 
-  void pprint(std::ostream &) override {
-    std::cerr << BT.getMnemo() << "\n";
-    std::cerr << "TODO: clean \n";
+  void pprint(std::ostream &os) override {
+    os << BT.getMnemo() << " " << ABI[Rs1.to_ulong()] << " "
+       << ABI[Rs2.to_ulong()] << std::dec << signExtend(Imm);
+    os << " :=";
     unsigned V = getVal();
     for (int i = 0; i < 32; ++i) {
       if (i == 7 || i == 12 || i == 17 || i == 20 || i == 25)
-        std::cerr << ' ';
-      std::cerr << (V >> (31 - i) & 1);
+        os << ' ';
+      os << (V >> (31 - i) & 1);
     }
-    assert(false && "unimplemented!");
+    os << "(BIN) = ";
+    for (unsigned long i = 0; i < sizeof(V); ++i) {
+      unsigned char byte = (V >> (i * 8)) & 0xFF;
+      os << std::hex << std::setw(2) << std::setfill('0')
+         << static_cast<int>(byte) << ' ';
+    }
+    os << "(HEX LE)";
+    os << "\n";
   }
   void exec(Address &, GPRegisters &, Memory &, CustomRegisters &) override;
 };

@@ -246,9 +246,13 @@ public:
   void execFromDRAMBASE() {
     PC = DRAM_BASE;
     while (auto &I = PCInstMap[PC]) {
-      // I->pprint(std::cerr);
-      dumpGPRegs();
       I->exec(PC, GPRegs, M, CRegs);
+#ifdef DEBUG
+      std::cerr << "Inst:\n";
+      I->pprint(std::cerr);
+      std::cerr << "Regs after:\n";
+      dumpGPRegs();
+#endif
       // TODO: dump instruction detail.
     }
     std::cerr << "stop on no instraction address\n";
