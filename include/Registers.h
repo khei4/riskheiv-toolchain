@@ -84,6 +84,7 @@ public:
       if (i % 4 == 3)
         std::cerr << '\n';
     }
+    std::cerr << '\n';
   }
 };
 

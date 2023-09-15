@@ -10,6 +10,10 @@
 #include <string>
 #include <vector>
 
+#ifdef DEBUG
+#include "Debug.h"
+#endif // DEBUG
+
 class Simulator {
 private:
   CPU C;
@@ -46,6 +50,71 @@ public:
       // time
       // FIXME: nested switch to if.
       switch (Opcode) {
+      case 0b0000011:
+        switch (unsigned Imm = InstVal >> 20; Funct3) {
+        // TODO: other load insts
+        case 0b010: // lw rd ,offset(rs1)
+          PCInstMap.insert(
+              {P, std::make_unique<IInstruction>(ITypeKinds.find("lw")->second,
+                                                 Rd, Rs1, Imm)});
+          break;
+        default:
+          assert(false && "unimplemented!");
+          break;
+        }
+        break;
+      case 0b0010111: // auipc
+        PCInstMap.insert(
+            {P, std::make_unique<UInstruction>(UTypeKinds.find("auipc")->second,
+                                               Rd, InstVal & 0xfffff000)});
+        break;
+      case 0b0110011:
+        if (Funct3 == 0b000 && Funct7 == 0b0000000) { // add
+          PCInstMap.insert(
+              {P, std::make_unique<RInstruction>(RTypeKinds.find("add")->second,
+                                                 Rd, Rs1, Rs2)});
+        } else if (Funct3 == 0b000 && Funct7 == 0b0100000) { // sub
+          PCInstMap.insert(
+              {P, std::make_unique<RInstruction>(RTypeKinds.find("sub")->second,
+                                                 Rd, Rs1, Rs2)});
+
+        } else if (Funct3 == 0b001 && Funct7 == 0b0000000) { // sll
+          PCInstMap.insert(
+              {P, std::make_unique<RInstruction>(RTypeKinds.find("sll")->second,
+                                                 Rd, Rs1, Rs2)});
+
+        } else if (Funct3 == 0b010 && Funct7 == 0b0000000) { // slt
+          PCInstMap.insert(
+              {P, std::make_unique<RInstruction>(RTypeKinds.find("slt")->second,
+                                                 Rd, Rs1, Rs2)});
+
+        } else if (Funct3 == 0b011 && Funct7 == 0b0000000) { // sltu
+
+          PCInstMap.insert(
+              {P, std::make_unique<RInstruction>(
+                      RTypeKinds.find("sltu")->second, Rd, Rs1, Rs2)});
+        } else if (Funct3 == 0b101 && Funct7 == 0b0000000) { // srl
+          PCInstMap.insert(
+              {P, std::make_unique<RInstruction>(RTypeKinds.find("srl")->second,
+                                                 Rd, Rs1, Rs2)});
+
+        } else if (Funct3 == 0b101 && Funct7 == 0b0100000) { // sra
+          PCInstMap.insert(
+              {P, std::make_unique<RInstruction>(RTypeKinds.find("sra")->second,
+                                                 Rd, Rs1, Rs2)});
+
+        } else if (Funct3 == 0b110 && Funct7 == 0b0000000) { // or
+          PCInstMap.insert(
+              {P, std::make_unique<RInstruction>(RTypeKinds.find("or")->second,
+                                                 Rd, Rs1, Rs2)});
+        } else if (Funct3 == 0b111 && Funct7 == 0b0000000) { // and
+          PCInstMap.insert(
+              {P, std::make_unique<RInstruction>(RTypeKinds.find("and")->second,
+                                                 Rd, Rs1, Rs2)});
+        } else
+          assert(false && "unimplemented!");
+
+        break;
       case 0b0010011:
         switch (unsigned Imm = InstVal >> 20; Funct3) {
         case 0b000: // addi rd, rs1, imm
@@ -99,24 +168,6 @@ public:
         PCInstMap.insert(
             {P, std::make_unique<IInstruction>(ITypeKinds.find("jalr")->second,
                                                Rd, Rs1, InstVal >> 20)});
-        break;
-      case 0b0000011:
-        switch (unsigned Imm = InstVal >> 20; Funct3) {
-        // TODO: other load insts
-        case 0b010: // lw rd ,offset(rs1)
-          PCInstMap.insert(
-              {P, std::make_unique<IInstruction>(ITypeKinds.find("lw")->second,
-                                                 Rd, Rs1, Imm)});
-          break;
-        default:
-          assert(false && "unimplemented!");
-          break;
-        }
-        break;
-      case 0b0010111: // auipc
-        PCInstMap.insert(
-            {P, std::make_unique<UInstruction>(UTypeKinds.find("auipc")->second,
-                                               Rd, InstVal & 0xfffff000)});
         break;
       case 0b0100011:
         // offset[11:5|4:0] = inst[31:25|11:7]
@@ -180,6 +231,9 @@ public:
                         ((InstVal >> 9) & 0x800) | ((InstVal >> 20) & 0x7fe))});
         break;
       default:
+#ifdef DEBUG
+        dumpInstVal(InstVal);
+#endif
         assert(false && "unimplemented!");
         break;
       }
@@ -192,9 +246,10 @@ public:
   void execFromDRAMBASE() {
     PC = DRAM_BASE;
     while (auto &I = PCInstMap[PC]) {
+      // I->pprint(std::cerr);
+      dumpGPRegs();
       I->exec(PC, GPRegs, M, CRegs);
       // TODO: dump instruction detail.
-      // dumpGPRegs();
     }
     std::cerr << "stop on no instraction address\n";
   }

@@ -162,7 +162,7 @@ private:
   std::bitset<5> Rd, Rs1, Rs2;
 
 public:
-  /// This is expected to be used on asm.
+  /// Encoding
   RInstruction(const RType &RT, const std::vector<std::string> &Toks) : RT(RT) {
     Rd = *findReg(Toks[1]);
     Rs1 = *findReg(Toks[2]);
@@ -171,6 +171,16 @@ public:
            (Rs1.to_ulong() << 15) | (RT.getFunct3().to_ulong() << 12) |
            (Rd.to_ulong() << 7) | RT.getOpcode().to_ulong());
   }
+
+  RInstruction(const RType &RT, const unsigned Rd, const unsigned Rs1,
+               const unsigned Rs2)
+      : RT(RT), Rd(Rd), Rs1(Rs1), Rs2(Rs2) {
+    // FIXME: rename member as _XX?
+    setVal((RT.getFunct7().to_ulong() << 25) | (this->Rs2.to_ulong() << 20) |
+           (this->Rs1.to_ulong() << 15) | (RT.getFunct3().to_ulong() << 12) |
+           (this->Rd.to_ulong() << 7) | RT.getOpcode().to_ulong());
+  }
+
   void pprint(std::ostream &) override {
     std::cerr << RT.getMnemo() << "\n";
     std::cerr << "TODO: clean \n";
@@ -182,9 +192,7 @@ public:
     }
     assert(false && "unimplemented!");
   }
-  void exec(Address &, GPRegisters &, Memory &, CustomRegisters &) override {
-    assert(false && "unimplemented!");
-  }
+  void exec(Address &, GPRegisters &, Memory &, CustomRegisters &) override;
 };
 
 class UInstruction : public Instruction {
@@ -358,7 +366,6 @@ public:
     unsigned M1 = 0b0011111100000;
     unsigned M2 = 0b0000000011110;
     unsigned M3 = 0b0100000000000;
-    std::cerr << "Mnemo: " << BT.getMnemo() << '\n';
 
     setVal((((Imm & M0) >> 12) << 31) | (((Imm & M1) >> 5) << 25) |
            (this->Rs2.to_ulong() << 20) | (this->Rs1.to_ulong() << 15) |
