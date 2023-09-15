@@ -232,7 +232,7 @@ private:
   std::bitset<21> Imm;
 
 public:
-  /// This is expected to be used on asm.
+  /// Encoding
   JInstruction(const UJType &JT, const std::vector<std::string> &Toks)
       : JT(JT) {
     unsigned M0 = 0b100000000000000000000;
@@ -246,6 +246,17 @@ public:
            (((ImmU & M2) >> 11) << 20) | (((ImmU & M3) >> 12) << 12) |
            (Rd.to_ulong() << 7) | JT.getOpcode().to_ulong());
   }
+
+  JInstruction(const UJType &JT, const unsigned Rd, const unsigned Imm)
+      : JT(JT), Rd(Rd), Imm(Imm) {
+    unsigned M0 = 0b100000000000000000000;
+    unsigned M1 = 0b000000000011111111110;
+    unsigned M2 = 0b000000000100000000000;
+    unsigned M3 = 0b011111111000000000000;
+    setVal((((Imm & M0) >> 20) << 31) | (((Imm & M1) >> 1) << 21) |
+           (((Imm & M2) >> 11) << 20) | (((Imm & M3) >> 12) << 12) | (Rd << 7) |
+           JT.getOpcode().to_ulong());
+  }
   void pprint(std::ostream &) override {
     std::cerr << JT.getMnemo() << "\n";
     std::cerr << "TODO: clean \n";
@@ -257,9 +268,7 @@ public:
     }
     assert(false && "unimplemented!");
   }
-  void exec(Address &, GPRegisters &, Memory &, CustomRegisters &) override {
-    assert(false && "unimplemented!");
-  }
+  void exec(Address &, GPRegisters &, Memory &, CustomRegisters &) override;
 };
 
 class SInstruction : public Instruction {

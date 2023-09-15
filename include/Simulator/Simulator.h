@@ -171,6 +171,14 @@ public:
           break;
         }
         break;
+      case 0b1101111: // jal
+        // imm[20|10:1|11|19:12] = inst[31|30:21|20|19:12]
+        PCInstMap.insert(
+            {P, std::make_unique<JInstruction>(
+                    JTypeKinds.find("jal")->second, Rd,
+                    ((InstVal & 0x80000000) >> 11) | (InstVal & 0xff000) |
+                        ((InstVal >> 9) & 0x800) | ((InstVal >> 20) & 0x7fe))});
+        break;
       default:
         assert(false && "unimplemented!");
         break;

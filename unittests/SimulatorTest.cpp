@@ -315,3 +315,27 @@ TEST(SimulatorTest, BGEU) {
       << "PC"
       << ", expected: " << EXPECTED_PC << ", got: " << Sim.getPC();
 }
+
+TEST(SimulatorTest, JAL) {
+  const unsigned char BYTES[] = {
+      0x6f, 0x09, 0xc0, 0x00, // jal x18, 12
+  };
+
+  const GPRegisters EXPECTED = {{18, DRAM_BASE + 4}};
+  const Address EXPECTED_PC = DRAM_BASE + 12;
+  std::stringstream ss;
+  ss.write(reinterpret_cast<const char *>(BYTES), sizeof(BYTES));
+
+  Simulator Sim(ss);
+  Sim.execFromDRAMBASE();
+  GPRegisters &Res = Sim.getGPRegs();
+
+  for (unsigned i = 0; i < 32; ++i) {
+    EXPECT_EQ(Res[i], EXPECTED[i])
+        << "Register:" << i << ", expected: " << EXPECTED[i]
+        << ", got: " << Res[i];
+  }
+  EXPECT_EQ(Sim.getPC(), EXPECTED_PC)
+      << "PC"
+      << ", expected: " << EXPECTED_PC << ", got: " << Sim.getPC();
+}

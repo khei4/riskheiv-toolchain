@@ -123,3 +123,14 @@ void BInstruction::exec(Address &PC, GPRegisters &GPRegs, Memory &M,
   } else
     assert(false && "unimplemented! or not exist");
 }
+
+void JInstruction::exec(Address &PC, GPRegisters &GPRegs, Memory &M,
+                        CustomRegisters &) {
+  std::string Mnemo = JT.getMnemo();
+  int ImmI = signExtend(Imm);
+  if (Mnemo == "jal") {
+    GPRegs[Rd.to_ulong()] = PC + 4;
+    PC += ImmI;
+  } else
+    assert(false && "unimplemented! or not exist");
+}
