@@ -270,7 +270,7 @@ private:
   std::bitset<12> Imm;
 
 public:
-  /// This is expected to be used on asm.
+  /// Encoding.
   SInstruction(const ISBType &ST, const std::vector<std::string> &Toks)
       : ST(ST) {
 
@@ -340,6 +340,23 @@ public:
            (BT.getFunct3().to_ulong() << 12) | (((ImmU & M2) >> 1) << 8) |
            (((ImmU & M3) >> 11) << 7) | BT.getOpcode().to_ulong());
   }
+
+  BInstruction(const ISBType &BT, const unsigned Rs1, const unsigned Rs2,
+               const unsigned Imm)
+      : BT(BT), Rs1(Rs1), Rs2(Rs2), Imm(Imm) {
+    // FIXME: rename member as _XX?
+    unsigned M0 = 0b1000000000000;
+    unsigned M1 = 0b0011111100000;
+    unsigned M2 = 0b0000000011110;
+    unsigned M3 = 0b0100000000000;
+    std::cerr << "Mnemo: " << BT.getMnemo() << '\n';
+
+    setVal((((Imm & M0) >> 12) << 31) | (((Imm & M1) >> 5) << 25) |
+           (this->Rs2.to_ulong() << 20) | (this->Rs1.to_ulong() << 15) |
+           (BT.getFunct3().to_ulong() << 12) | (((Imm & M2) >> 1) << 8) |
+           (((Imm & M3) >> 11) << 7) | BT.getOpcode().to_ulong());
+  }
+
   void pprint(std::ostream &) override {
     std::cerr << BT.getMnemo() << "\n";
     std::cerr << "TODO: clean \n";
@@ -351,9 +368,7 @@ public:
     }
     assert(false && "unimplemented!");
   }
-  void exec(Address &, GPRegisters &, Memory &, CustomRegisters &) override {
-    assert(false && "unimplemented!");
-  }
+  void exec(Address &, GPRegisters &, Memory &, CustomRegisters &) override;
 };
 
 #endif

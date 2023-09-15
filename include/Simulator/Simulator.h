@@ -44,6 +44,7 @@ public:
 
       // FIXME: enough to set just mnemonic? & mask for srai would be another
       // time
+      // FIXME: nested switch to if.
       switch (Opcode) {
       case 0b0010011:
         switch (unsigned Imm = InstVal >> 20; Funct3) {
@@ -118,6 +119,7 @@ public:
                                                Rd, InstVal & 0xfffff000)});
         break;
       case 0b0100011:
+        // offset[11:5|4:0] = inst[31:25|11:7]
         switch (unsigned Offset =
                     (InstVal & 0xfe000000) >> 20 | ((InstVal >> 7) & 0x1f);
                 Funct3) {
@@ -128,6 +130,44 @@ public:
           break;
         default:
           assert(false && "unimplemented!");
+          break;
+        }
+        break;
+      case 0b1100011:
+        // imm[12|11|10:5|4:1] = inst[31|7|30:25|11:8]
+        switch (unsigned Imm =
+                    (InstVal & 0x80000000) >> 19 | ((InstVal & 0x80) << 4) |
+                    ((InstVal >> 20) & 0x7e0) | ((InstVal >> 7) & 0x1e);
+                Funct3) {
+        case 0b000: // beq
+          PCInstMap.insert(
+              {P, std::make_unique<BInstruction>(BTypeKinds.find("beq")->second,
+                                                 Rs1, Rs2, Imm)});
+          break;
+        case 0b001: // bne
+          PCInstMap.insert(
+              {P, std::make_unique<BInstruction>(BTypeKinds.find("bne")->second,
+                                                 Rs1, Rs2, Imm)});
+          break;
+        case 0b100: // blt
+          PCInstMap.insert(
+              {P, std::make_unique<BInstruction>(BTypeKinds.find("blt")->second,
+                                                 Rs1, Rs2, Imm)});
+          break;
+        case 0b101: // bge
+          PCInstMap.insert(
+              {P, std::make_unique<BInstruction>(BTypeKinds.find("bge")->second,
+                                                 Rs1, Rs2, Imm)});
+          break;
+        case 0b110: // bltu
+          PCInstMap.insert(
+              {P, std::make_unique<BInstruction>(
+                      BTypeKinds.find("bltu")->second, Rs1, Rs2, Imm)});
+          break;
+        case 0b111: // bgeu
+          PCInstMap.insert(
+              {P, std::make_unique<BInstruction>(
+                      BTypeKinds.find("bgeu")->second, Rs1, Rs2, Imm)});
           break;
         }
         break;
@@ -145,6 +185,8 @@ public:
     PC = DRAM_BASE;
     while (auto &I = PCInstMap[PC]) {
       I->exec(PC, GPRegs, M, CRegs);
+      // TODO: dump instruction detail.
+      // dumpGPRegs();
     }
     std::cerr << "stop on no instraction address\n";
   }
